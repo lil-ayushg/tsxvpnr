@@ -1,0 +1,52 @@
+services:
+  wireguard:
+    image: docker.io/qmcgaw/gluetun:latest
+    container_name: wireguard # change if you need to
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./gluetun:/gluetun # container path
+    environment:
+      - VPN_SERVICE_PROVIDER=protonvpn # or another vpn provider
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=kEZ2mWa6tNRRZlI9ASgu6JYDLroNe2SoJUh1RP+gqHc= # change to your wireguard private key
+      - WIREGUARD_PUBLIC_KEY=wnDzTUyqN8KFDQJEj0vbYwfcEQ4A8FEIO0ErLApJCE4= # change to your wireguard public key
+      - WIREGUARD_ADDRESSES=0.0.0.0/0, ::/0 # change to your wireguard address
+      - WIREGUARD_MTU=1320
+      - SERVER_COUNTRIES=Netherland # change to country name e.g. Switzerland
+      - WIREGUARD_ALLOWED_IPS=0.0.0.0/0,::/6 # ipv4 and ipv6
+      - VPN_PORT_FORWARDING=off # optional
+      - BLOCK_ADS=off # optional
+      - VPN_ACCELERATOR=on # optional
+      - TZ=Asia/Kolkata # input your timezone e.g. Europe/Zurich
+      - UPDATER_PERIOD=24h
+      #- FIREWALL_OUTBOUND_SUBNETS=xxx.xxx.xxx.xxx/xx # optional, comment out to use local subnet with homelab services e.g. 192.168.1.0/24
+  tailscale-wireguard:
+    image: tailscale/tailscale:stable
+    container_name: tailscale-wireguard # change if you need to
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - tsvarlib:/var/lib
+      - tsstate:/state
+      - /dev/net/tun:/dev/net/tun
+    network_mode: "service:wireguard"
+    restart: unless-stopped
+    environment:
+      - TS_HOSTNAME=wireguard # named it as you wish
+      - TS_AUTHKEY=tskey-auth-k2W29BwcrZ11CNTRL-trLsCFj2NzYhciTZ9cZByY446Ti5yJge # it's better using trust credentials than auth key
+      - TS_EXTRA_ARGS=--advertise-exit-node --advertise-tags=tag:vpn
+      - TS_NO_LOGS_NO_SUPPORT=true
+      - TS_STATE_DIR=/state
+      - TS_AUTH_ONCE=true
+      #- TS_ROUTES=xxx.xxx.xxx.xxx/xx # optional, comment out to use local subnet with homelab services e.g. 192.168.1.0/24, same as FIREWALL_OUTBOUND_SUBNETS
+
+volumes:
+  tsvarlib:
+    driver: local
+  tsstate:
+    driver: local
